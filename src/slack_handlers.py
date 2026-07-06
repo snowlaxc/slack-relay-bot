@@ -351,14 +351,18 @@ def register_slack_handlers(app: App):
                             except Exception as e:
                                 print(f"Error deleting file message {msg['ts']}: {e}")
             
-            # Delete the file from Slack
-            client.files_delete(file=file_id)
-            
-            # Delete the button message
-            client.chat_delete(
-                channel=channel_id,
-                ts=message_ts
-            )
+            # Delete the file from Slack (already-deleted 파일은 무시 — 흐름 중단 방지)
+            try:
+                client.files_delete(file=file_id)
+            except Exception as e:
+                if 'file_deleted' not in str(e):
+                    print(f"files_delete 경고(무시): {e}")
+
+            # Delete the button message (실패해도 흐름 유지)
+            try:
+                client.chat_delete(channel=channel_id, ts=message_ts)
+            except Exception as e:
+                print(f"button chat_delete 경고(무시): {e}")
             
             # Delete from database
             import asyncio
